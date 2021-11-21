@@ -21,8 +21,8 @@ Available options:
 
 sub task:
     add <task message> <date string in rfc3339 format> : Add new task.
-		list [--expiring-today]: list all task.
-		done <task id>: mark a task as done.
+    list [--expiring-today]: list all task.
+    done <task id>: mark a task as done.
 EOF
   exit
 }
