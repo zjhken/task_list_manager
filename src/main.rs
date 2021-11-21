@@ -27,8 +27,7 @@ async fn add(mut ctx: Context) -> Result<Context, http_types::Error> {
     let json = ctx.request.body_json::<HashMap<String, String>>().await?;
     let task = json.get("task").unwrap();
     let date = json.get("date").unwrap();
-    println!("task={}", task);
-    println!("date={}", date);
+    println!("[INFO]OPERATION=ADD, task={}, date={}", task, date);
     let date = NaiveDate::parse_from_str(date, "%Y-%m-%d")?;
     let id = ID_SEQ.fetch_add(1u32, std::sync::atomic::Ordering::SeqCst);
     let mut lockedTasks = TASKS.write().await;
@@ -49,15 +48,15 @@ async fn list(mut ctx: Context) -> Result<Context, http_types::Error> {
                         println!("Found request has today param");
                         let now = chrono::Local::now();
                         let today = now.naive_local().date();
-                        let x: BTreeMap<_, _> = lockedTasks
+                        let map: BTreeMap<_, _> = lockedTasks
                             .iter()
                             .filter(|entry| {
                                 let val = entry.1;
                                 return val.1.eq(&today);
                             })
                             .collect();
-                        println!("{:?}", x);
-                        format!("{:?}", x)
+                        println!("{:?}", map);
+                        format!("{:?}", map)
                     }
                     else {
                         format!("{:?}", lockedTasks)
@@ -86,6 +85,7 @@ async fn done(mut ctx: Context) -> Result<Context, http_types::Error> {
             match num {
                 Some(id) => {
                     (*lockedTasks).retain(|key, _| key != id);
+                    println!("[INFO]OPERATION=DONE, id={}", id);
                     format!("{:?}", lockedTasks)
                 }
                 None => {
