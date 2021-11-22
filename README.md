@@ -2,7 +2,7 @@
 
 The backend is written in Rust.
 The key component of the backend is my self-written Rust web framework called "Seafloor".
-The motivation if this framework a more elegant API.
+The motivation is to create a  framework with more elegant APIs.
 
 ## logging
 currently I didn't implement any logging mechanism in it, all print to the stdout.
