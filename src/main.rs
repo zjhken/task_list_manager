@@ -156,15 +156,6 @@ mod tests {
     #[test]
     fn test_done() {
         smol::block_on(async {
-            // let mut req = Request::new(Method::Get, "http://example.com");
-            // req.set_body("{\"task\": \"haha\",\"date\": \"2021-01-01\"}");
-            // let ctx = Context {
-            //     pathIndex: 1usize,
-            //     request: req,
-            //     response: Response::new(StatusCode::Ok),
-            //     sessionData: Default::default(),
-            // };
-            // let _ = add(ctx).await;
             let mut req = Request::new(Method::Get, "http://example.com");
             req.set_body("{\"num\": 1");
             let ctx = Context {
