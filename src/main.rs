@@ -1,5 +1,6 @@
 #![feature(once_cell)]
 #![allow(non_snake_case)]
+#![feature(async_closure)]
 use chrono::{FixedOffset, NaiveDate};
 use seafloor::http_types::{Method, Request, Response};
 use seafloor::{
@@ -57,8 +58,7 @@ async fn list(mut ctx: Context) -> Result<Context, http_types::Error> {
                             .collect();
                         println!("{:?}", map);
                         format!("{:?}", map)
-                    }
-                    else {
+                    } else {
                         format!("{:?}", lockedTasks)
                     }
                 }
@@ -100,4 +100,87 @@ async fn done(mut ctx: Context) -> Result<Context, http_types::Error> {
     println!("body is {}", body);
     ctx.response.set_body(body);
     return Ok(ctx);
+}
+
+#[cfg(test)]
+mod tests {
+    use seafloor::http_types::StatusCode;
+    use seafloor::smol;
+
+    use super::*;
+
+    #[test]
+    fn test_add() {
+        smol::block_on(async {
+            let mut req = Request::new(Method::Get, "http://example.com");
+            req.set_body("{\"task\": \"haha\",\"date\": \"2021-01-01\"}");
+            let ctx = Context {
+                pathIndex: 1usize,
+                request: req,
+                response: Response::new(StatusCode::Ok),
+                sessionData: Default::default(),
+            };
+            let body = add(ctx)
+                .await
+                .unwrap()
+                .response
+                .body_string()
+                .await
+                .unwrap();
+            assert_eq!(body, "{1: (\"haha\", 2021-01-01)}");
+        });
+    }
+    #[test]
+    fn test_list() {
+        smol::block_on(async {
+            let mut req = Request::new(Method::Get, "http://example.com");
+            req.set_body("{\"task\": \"haha\",\"date\": \"2021-01-01\"}");
+            let ctx = Context {
+                pathIndex: 1usize,
+                request: req,
+                response: Response::new(StatusCode::Ok),
+                sessionData: Default::default(),
+            };
+            // let ctx = add(ctx).await;
+            let body = list(ctx)
+                .await
+                .unwrap()
+                .response
+                .body_string()
+                .await
+                .unwrap();
+            assert_eq!(body, "{1: (\"haha\", 2021-01-01)}");
+        });
+    }
+
+    #[test]
+    fn test_done() {
+        smol::block_on(async {
+            // let mut req = Request::new(Method::Get, "http://example.com");
+            // req.set_body("{\"task\": \"haha\",\"date\": \"2021-01-01\"}");
+            // let ctx = Context {
+            //     pathIndex: 1usize,
+            //     request: req,
+            //     response: Response::new(StatusCode::Ok),
+            //     sessionData: Default::default(),
+            // };
+            // let _ = add(ctx).await;
+            let mut req = Request::new(Method::Get, "http://example.com");
+            req.set_body("{\"num\": 1");
+            let ctx = Context {
+                pathIndex: 1usize,
+                request: req,
+                response: Response::new(StatusCode::Ok),
+                sessionData: Default::default(),
+            };
+            let body = done(ctx)
+                .await
+                .unwrap()
+                .response
+                .body_string()
+                .await
+                .unwrap();
+            assert_eq!(body, "{}");
+        });
+    }
 }

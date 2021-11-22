@@ -1,0 +1,17 @@
+###
+
+POST http://localhost:8800/add HTTP/1.1
+content-type: application/json
+
+{
+    "task": "haha",
+		"date": "2021-01-01"
+}
+
+###
+POST http://localhost:8800/done HTTP/1.1
+content-type: application/json
+
+{
+    "num": 1
+}
