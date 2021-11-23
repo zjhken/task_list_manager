@@ -104,6 +104,8 @@ async fn done(mut ctx: Context) -> Result<Context, http_types::Error> {
 
 #[cfg(test)]
 mod tests {
+    use std::panic;
+
     use seafloor::http_types::StatusCode;
     use seafloor::smol;
 
@@ -111,7 +113,7 @@ mod tests {
 
     #[test]
     fn test_add() {
-        smol::block_on(async {
+        run_test(|| {
             let mut req = Request::new(Method::Get, "http://example.com");
             req.set_body("{\"task\": \"haha\",\"date\": \"2021-01-01\"}");
             let ctx = Context {
@@ -120,19 +122,21 @@ mod tests {
                 response: Response::new(StatusCode::Ok),
                 sessionData: Default::default(),
             };
-            let body = add(ctx)
-                .await
-                .unwrap()
-                .response
-                .body_string()
-                .await
-                .unwrap();
-            assert_eq!(body, "{1: (\"haha\", 2021-01-01)}");
+            let result = smol::block_on(async {
+                add(ctx)
+                    .await
+                    .unwrap()
+                    .response
+                    .body_string()
+                    .await
+                    .unwrap()
+            });
+            assert_eq!(result, "{1: (\"haha\", 2021-01-01)}");
         });
     }
     #[test]
     fn test_list() {
-        smol::block_on(async {
+        run_test(|| {
             let mut req = Request::new(Method::Get, "http://example.com");
             req.set_body("{\"task\": \"haha\",\"date\": \"2021-01-01\"}");
             let ctx = Context {
@@ -141,37 +145,73 @@ mod tests {
                 response: Response::new(StatusCode::Ok),
                 sessionData: Default::default(),
             };
-            // let ctx = add(ctx).await;
-            let body = list(ctx)
-                .await
-                .unwrap()
-                .response
-                .body_string()
-                .await
-                .unwrap();
+            let body = smol::block_on(async {
+                let ctx = add(ctx).await.unwrap();
+                list(ctx)
+                    .await
+                    .unwrap()
+                    .response
+                    .body_string()
+                    .await
+                    .unwrap()
+            });
             assert_eq!(body, "{1: (\"haha\", 2021-01-01)}");
         });
     }
 
     #[test]
     fn test_done() {
-        smol::block_on(async {
+        run_test(|| {
             let mut req = Request::new(Method::Get, "http://example.com");
-            req.set_body("{\"num\": 1");
+            req.set_body("{\"task\": \"haha\",\"date\": \"2021-01-01\"}");
             let ctx = Context {
                 pathIndex: 1usize,
                 request: req,
                 response: Response::new(StatusCode::Ok),
                 sessionData: Default::default(),
             };
-            let body = done(ctx)
-                .await
-                .unwrap()
-                .response
-                .body_string()
-                .await
-                .unwrap();
+            let _ = smol::block_on(async { add(ctx).await });
+
+            let mut req = Request::new(Method::Get, "http://example.com");
+            req.set_body("{\"num\": 1}");
+            let ctx = Context {
+                pathIndex: 1usize,
+                request: req,
+                response: Response::new(StatusCode::Ok),
+                sessionData: Default::default(),
+            };
+            let body = smol::block_on(async {
+                done(ctx)
+                    .await
+                    .unwrap()
+                    .response
+                    .body_string()
+                    .await
+                    .unwrap()
+            });
             assert_eq!(body, "{}");
         });
     }
+    fn run_test<T>(test: T) -> ()
+    where
+        T: FnOnce() -> () + panic::UnwindSafe,
+    {
+        setup();
+
+        let result = panic::catch_unwind(|| test());
+
+        teardown();
+
+        assert!(result.is_ok())
+    }
+
+    fn setup() {
+        smol::block_on(async {
+            let mut lockedTasks = TASKS.write().await;
+            (*lockedTasks).retain(|_, _| false);
+            println!(">>>>>>>>>>>>>>> {:?}", lockedTasks);
+        });
+    }
+
+    fn teardown() {}
 }
